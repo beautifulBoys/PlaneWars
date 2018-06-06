@@ -19,6 +19,7 @@ html, body {
 }
 * {
   font-family: "微软雅黑";
+  user-select: none;
 }
 #app {
   width: 100%;
