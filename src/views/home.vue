@@ -1,7 +1,14 @@
 <template>
   <div class="home">
     <div class="control">
-      <div class="plane" ref="plane" :style="`top: ${plane.y}px; left: ${plane.x}px`"></div>
+      <div class="plane" ref="plane" :style="`
+        top: ${plane.y}px;
+        left: ${plane.x}px;
+        width: ${plane.remw}rem;
+        height: ${plane.remh}rem;
+        transform: translate3d(-${plane.remw / 2}rem, -${plane.remh / 2}rem, 0);
+        background-image: url(${plane.img});
+      `"></div>
     </div>
     <canvas id="atom" ref="atom"></canvas>
     <div class="bg-box">
@@ -12,11 +19,8 @@
 
 <script>
 
-  import {
-    img_bullet,
-    img_plane
-  } from './images.js'
-
+  import imgData from './images.js'
+  import mineConfig from './mine_conf.js'
   export default {
     data () {
       return {
@@ -36,7 +40,7 @@
           remh: 0.35, // 实际大小（rem）
           w: 0,
           h: 0,
-          v: 10,
+          v: -10,
           time: 200,
           hurt: 10
         },
@@ -47,12 +51,24 @@
         touch: {
           status: false
         },
-        plane: {
+        enemy_plane: {
+          remw: 0.9, // 实际大小（rem）
+          remh: 1, // 实际大小（rem）
           x: 0,
           y: 0,
           w: 0,
           h: 0,
-          damage: 0, // 伤害
+          v: 2
+        },
+        plane: {
+          remw: 1.1, // 实际大小（rem）
+          remh: 1.2, // 实际大小（rem）
+          x: 0,
+          y: 0,
+          w: 0,
+          h: 0,
+          img: imgData.img_plane,
+          damage: 10, // 伤害
           hp: 200, // 血量
           lv: 1, // 等级
 
@@ -77,6 +93,7 @@
       initVariables () {
         this.images = {}, // 用到的图片资源 {bullet: null, ..., bullet: null}
         this.bullets = [] // 子弹容器
+        this.enemy_bullets = []
 
         this.bullet = {
           ...this.bullet,
@@ -84,20 +101,29 @@
           h: window.fontSize * this.bullet.remh
         }
 
-        let air = this.$refs.plane
         this.plane = {
           ...this.plane,
-          w: air.clientWidth,
-          h: air.clientHeight,
+          w: window.fontSize * this.plane.remw,
+          h: window.fontSize * this.plane.remh,
           x: this.screen.w  / 2,
           y: this.screen.h - 150
+        }
+
+        this.enemy_plane = {
+          ...this.enemy_plane,
+          w: window.fontSize * this.enemy_plane.remw,
+          h: window.fontSize * this.enemy_plane.remh,
+          x: this.screen.w  / 2,
+          y: -50
         }
         this.animation()
       },
       initImageSource () {
         let arr = [
-          {name: 'bullet', imgUrl: img_bullet},
-          {name: 'plane', imgUrl: img_plane}
+          {name: 'bullet', imgUrl: imgData.img_bullet},
+          {name: 'plane', imgUrl: imgData.img_plane},
+          {name: 'enemy_bullet', imgUrl: imgData.img_enemy_bullet},
+          {name: 'enemy_plane', imgUrl: imgData.img_enemy_plane}
         ]
         arr.forEach((item, index) => {
           let img = new Image()
@@ -165,10 +191,16 @@
         let me = this
         let list = []
         me.bullets.forEach(item => {
-          item.y = item.y - item.v
+          item.y = item.y + item.v
           if (item.y > -(me.bullet.h)) list.push(item)
         })
         me.bullets = list
+
+        this.enemy_plane = {
+          ...this.enemy_plane,
+          y: this.enemy_plane.y + this.enemy_plane.v
+        }
+
         me.paintFunc()
       },
       paintFunc () {
@@ -183,6 +215,15 @@
             me.bullet.h
           )
         })
+
+        me.context.drawImage(
+          me.images.enemy_plane,
+          me.enemy_plane.x,
+          me.enemy_plane.y,
+          me.enemy_plane.w,
+          me.enemy_plane.h
+        )
+
       },
 
     }
@@ -206,7 +247,10 @@
       width: 1.1rem;
       height: 1.2rem;
       transform: translate3d(-0.55rem, -0.6rem, 0);
-      background: url(../images/plane.png) no-repeat center center;
+      // background: url(../images/mine/plane.png) no-repeat center center;
+
+      background-repeat: no-repeat;
+      background-position: center;
       background-size: 100% auto;
     }
   }
