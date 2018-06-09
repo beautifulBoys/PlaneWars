@@ -7,8 +7,8 @@ function toRem (doc, win) {
             if (!clientWidth) return
 
             //这里是假设在640px宽度设计稿的情况下，1rem = 20px
-            docEl.style.fontSize = 100 * (clientWidth / 640) + 'px'
             window.fontSize = 100 * (clientWidth / 640)
+            docEl.style.fontSize = window.fontSize + 'px'
         }
     if (!doc.addEventListener) return
     win.addEventListener(resizeEvt, recalc, false)

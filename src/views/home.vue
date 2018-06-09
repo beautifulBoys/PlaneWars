@@ -20,7 +20,9 @@
 <script>
 
   import imgData from './images.js'
-  import mineConfig from './mine_conf.js'
+  import MineConfig from './mine_conf.js'
+  const mineBullet = MineConfig.bullet
+  const minePlane = MineConfig.plane
   export default {
     data () {
       return {
@@ -35,15 +37,6 @@
           refreshCanvasTime: 30,
 
         },
-        bullet: {
-          remw: 0.2, // 实际大小（rem）
-          remh: 0.35, // 实际大小（rem）
-          w: 0,
-          h: 0,
-          v: -10,
-          time: 200,
-          hurt: 10
-        },
         screen: {
           w: 0,
           h: 0
@@ -51,28 +44,23 @@
         touch: {
           status: false
         },
+        plane: {
+          x: 0,
+          y: 0,
+          w: 0,
+          h: 0,
+          img: null
+        },
+        bullet: {},
         enemy_plane: {
           remw: 0.9, // 实际大小（rem）
-          remh: 1, // 实际大小（rem）
+          remh: 0.8, // 实际大小（rem）
           x: 0,
           y: 0,
           w: 0,
           h: 0,
           v: 2
         },
-        plane: {
-          remw: 1.1, // 实际大小（rem）
-          remh: 1.2, // 实际大小（rem）
-          x: 0,
-          y: 0,
-          w: 0,
-          h: 0,
-          img: imgData.img_plane,
-          damage: 10, // 伤害
-          hp: 200, // 血量
-          lv: 1, // 等级
-
-        }
       }
     },
     mounted () {
@@ -82,12 +70,6 @@
         this.initImageSource()
         this.planeInit()
       })
-
-      // var img = new Image()
-      // img.src = imgData
-      // img.onload = () => {
-      //   context.drawImage(img, 0, 0, 200, 30)
-      // }
     },
     methods: {
       initVariables () {
@@ -95,18 +77,22 @@
         this.bullets = [] // 子弹容器
         this.enemy_bullets = []
 
+        // 初始化自己飞机炮弹的数据
+        let b = mineBullet[MineConfig.planeLevel]
         this.bullet = {
-          ...this.bullet,
-          w: window.fontSize * this.bullet.remw,
-          h: window.fontSize * this.bullet.remh
+          ...b,
+          w: window.fontSize * b.remw,
+          h: window.fontSize * b.remh
         }
 
+        // 初始化自己飞机的数据
+        let p = minePlane[MineConfig.planeLevel]
         this.plane = {
-          ...this.plane,
-          w: window.fontSize * this.plane.remw,
-          h: window.fontSize * this.plane.remh,
+          ...p,
+          w: window.fontSize * p.remw,
+          h: window.fontSize * p.remh,
           x: this.screen.w  / 2,
-          y: this.screen.h - 150
+          y: this.screen.h - 100
         }
 
         this.enemy_plane = {
@@ -132,12 +118,6 @@
             this.images[item.name] = img
           }
         })
-        // var img = new Image()
-        // img.src = img_bullet
-        // img.onload = () => {
-        //   this.images.bullet = img
-        //   context.drawImage(img, 0, 0, 200, 30)
-        // }
       },
       initScreenSize () {
         this.screen = {
@@ -177,7 +157,7 @@
               w: me.bullet.w,
               h: me.bullet.h,
               x: me.plane.x,
-              y: me.plane.y,
+              y: me.plane.y - (me.plane.h / 3),
               v: me.bullet.v
             })
           }
