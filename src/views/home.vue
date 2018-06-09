@@ -2,12 +2,12 @@
   <div class="home">
     <div class="control">
       <div class="plane" ref="plane" :style="`
-        top: ${plane.y}px;
-        left: ${plane.x}px;
-        width: ${plane.remw}rem;
-        height: ${plane.remh}rem;
-        transform: translate3d(-${plane.remw / 2}rem, -${plane.remh / 2}rem, 0);
-        background-image: url(${plane.img});
+        top: ${mine.plane.y}px;
+        left: ${mine.plane.x}px;
+        width: ${mine.plane.remw}rem;
+        height: ${mine.plane.remh}rem;
+        transform: translate3d(-${mine.plane.remw / 2}rem, -${mine.plane.remh / 2}rem, 0);
+        background-image: url(${mine.plane.img});
       `"></div>
     </div>
     <canvas id="atom" ref="atom"></canvas>
@@ -19,18 +19,16 @@
 
 <script>
 
-  import imgData from './images.js'
-  import MineConfig from './mine_conf.js'
-  const mineBullet = MineConfig.bullet
-  const minePlane = MineConfig.plane
+  import initMineImageSourceFunc from './mine_conf.js'
+  import initEnemyImageSourceFunc from './enemy_conf.js'
+  import EnemyConfig from './enemy_conf.js'
+  import homeFunc from './home_func.js'
   export default {
     data () {
       return {
         /*
-          images: {}, // 用到的图片资源 {bullet: null, ..., bullet: null}
           context: null // canvas 执行上下文
           timer: null // 执行动画的对象
-          bullets: [] // 子弹容器
 
         */
         setting: {
@@ -41,88 +39,54 @@
           w: 0,
           h: 0
         },
+        mine: {
+          plane: { // 飞机属性
+            img: null,
+            w: 0,
+            h: 0,
+            x: 0,
+            y: 0,
+          },
+          bullet: {}, // 子弹属性
+          bullets: [] // 子弹集合
+        },
         touch: {
           status: false
         },
+        enemy: {
+          planes: [],
+          bullets: []
+        },
+        enemy_plane: {},
+        enemy_bullet: [],
         plane: {
-          x: 0,
-          y: 0,
-          w: 0,
-          h: 0,
-          img: null
-        },
-        bullet: {},
-        enemy_plane: {
-          remw: 0.9, // 实际大小（rem）
-          remh: 0.8, // 实际大小（rem）
-          x: 0,
-          y: 0,
-          w: 0,
-          h: 0,
-          v: 2
-        },
+
+        }
       }
     },
     mounted () {
       setTimeout(() => {
-      this.initScreenSize()
+        this.initScreenSize()
         this.initVariables()
-        this.initImageSource()
         this.planeInit()
       })
     },
     methods: {
-      initVariables () {
-        this.images = {}, // 用到的图片资源 {bullet: null, ..., bullet: null}
-        this.bullets = [] // 子弹容器
-        this.enemy_bullets = []
+      async initVariables () { // 初始化资源
+        this.MineConfig = await initMineImageSourceFunc() // 初始化 自己 相关图片资源及配置
+        this.EnemyConfig = await initEnemyImageSourceFunc() // 初始化 敌人 相关图片资源及配置
 
-        // 初始化自己飞机炮弹的数据
-        let b = mineBullet[MineConfig.planeLevel]
-        this.bullet = {
-          ...b,
-          w: window.fontSize * b.remw,
-          h: window.fontSize * b.remh
-        }
+        let mineInfo = homeFunc.update_mine_config(this.MineConfig)
+        this.mine.plane = mineInfo.plane
+        this.mine.bullet = mineInfo.bullet
 
-        // 初始化自己飞机的数据
-        let p = minePlane[MineConfig.planeLevel]
-        this.plane = {
-          ...p,
-          w: window.fontSize * p.remw,
-          h: window.fontSize * p.remh,
-          x: this.screen.w  / 2,
-          y: this.screen.h - 100
-        }
 
-        this.enemy_plane = {
-          ...this.enemy_plane,
-          w: window.fontSize * this.enemy_plane.remw,
-          h: window.fontSize * this.enemy_plane.remh,
-          x: this.screen.w  / 2,
-          y: -50
-        }
         this.animation()
-      },
-      initImageSource () {
-        let arr = [
-          {name: 'bullet', imgUrl: imgData.img_bullet},
-          {name: 'plane', imgUrl: imgData.img_plane},
-          {name: 'enemy_bullet', imgUrl: imgData.img_enemy_bullet},
-          {name: 'enemy_plane', imgUrl: imgData.img_enemy_plane}
-        ]
-        arr.forEach((item, index) => {
-          let img = new Image()
-          img.src = item.imgUrl
-          img.onload = () => {
-            this.images[item.name] = img
-          }
-        })
       },
       initScreenSize () {
         this.screen = {
-          w: document.body.clientWidth,
-          h: document.body.clientHeight
+          w: screen.availWidth,
+          h: screen.availHeight
         }
         let canvas = document.getElementById('atom')
         this.context = canvas.getContext('2d')
@@ -140,8 +104,8 @@
           if (!this.touch.status) return
           let left = e.touches[0].clientX, right = e.touches[0].clientY
           if (this.screen.w < left || left < 0 || this.screen.h < right || right < 0) return
-          this.plane.x = left
-          this.plane.y = right
+          this.mine.plane.x = left
+          this.mine.plane.y = right
         })
         this.$refs.plane.addEventListener('touchend', (e) => {
           e.stopPropagation()
@@ -152,57 +116,116 @@
       animation () {
         let me = this
         setInterval(() => {
-          if (me.plane.hp > 0) {
-            me.bullets.push({
-              w: me.bullet.w,
-              h: me.bullet.h,
-              x: me.plane.x,
-              y: me.plane.y - (me.plane.h / 3),
-              v: me.bullet.v
-            })
+          if (me.mine.plane.hp > 0) {
+            me.addMineBullet()
           }
-  			}, me.bullet.time)
+  			}, me.mine.bullet.time)
+
+        setInterval(() => {
+          me.addEnemyPlane()
+  			}, 1000)
 
         me.timer = setInterval(() => {
   				me.calculateBullet()
   			}, this.setting.refreshCanvasTime)
       },
+      addMineBullet () {
+        this.mine.bullets.push({
+          ...this.mine.bullet,
+          w: this.mine.bullet.w,
+          h: this.mine.bullet.h,
+          x: this.mine.plane.x - (this.mine.bullet.w / 2), // 已经去除了飞机的视觉偏移量,
+          y: this.mine.plane.y,
+          v: this.mine.bullet.v
+        })
+      },
+      addEnemyPlane () {
+        let me = this
+        let enemyInfo = homeFunc.update_enemy_config(this.EnemyConfig, 1 + parseInt(Math.random() * 3))
+        let timer = setInterval(() => {
+          me.addEnemyBullet(timer, enemyInfo.bullet)
+        }, enemyInfo.plane.shootSpeed)
+
+        this.enemy.planes[timer] = enemyInfo.plane
+        this.enemy.bullets.push(enemyInfo.bullet)
+      },
+      addEnemyBullet (k, bullet) {
+        let plane = this.enemy.planes[k]
+        this.enemy.bullets.push({
+          w: bullet.w,
+          h: bullet.h,
+          x: plane.x + (plane.w / 2) - (bullet.w / 2),
+          y: plane.y + plane.h,
+          v: bullet.v,
+          img: bullet.img
+        })
+      },
       calculateBullet () {
         let me = this
-        let list = []
-        me.bullets.forEach(item => {
-          item.y = item.y + item.v
-          if (item.y > -(me.bullet.h)) list.push(item)
-        })
-        me.bullets = list
 
-        this.enemy_plane = {
-          ...this.enemy_plane,
-          y: this.enemy_plane.y + this.enemy_plane.v
+        // 更新自己的子弹
+        let bullets = []
+        me.mine.bullets.forEach(item => {
+          item.y = item.y + item.v
+          if (item.y > -(me.mine.bullet.h)) bullets.push(item)
+        })
+        me.mine.bullets = bullets
+
+        // 更新敌人的飞机
+        let planes = {}
+        for (let k in me.enemy.planes) {
+          let item = me.enemy.planes[k]
+          item.y = item.y + item.v
+          if (item.y < this.screen.h && item.hp > 0) planes[k] = item
+          else clearInterval(k) // 溢出屏幕或者被打死
         }
+        me.enemy.planes = planes
+
+        // 更新敌人的子弹
+        let enemyBullets = []
+        me.enemy.bullets.forEach(item => {
+          item.y = item.y + item.v
+          if (item.y < this.screen.h) enemyBullets.push(item)
+        })
+        me.enemy.bullets = enemyBullets
+
 
         me.paintFunc()
       },
       paintFunc () {
         let me = this
         me.context.clearRect(0, 0, this.screen.w, this.screen.h)
-        me.bullets.forEach(item => {
+        // 渲染 本机子弹
+        me.mine.bullets.forEach(item => {
           me.context.drawImage(
-            me.images.bullet,
-            item.x - (this.bullet.w / 2),
-            item.y - (this.bullet.h / 2),
-            me.bullet.w,
-            me.bullet.h
+            item.img,
+            item.x,
+            item.y,
+            item.w,
+            item.h
           )
         })
-
-        me.context.drawImage(
-          me.images.enemy_plane,
-          me.enemy_plane.x,
-          me.enemy_plane.y,
-          me.enemy_plane.w,
-          me.enemy_plane.h
-        )
+        // 渲染 敌机
+        for (let k in me.enemy.planes) {
+          let item = me.enemy.planes[k]
+          me.context.drawImage(
+            item.img,
+            item.x,
+            item.y,
+            item.w,
+            item.h
+          )
+        }
+        // 渲染 敌机 子弹
+        me.enemy.bullets.forEach(item => {
+          me.context.drawImage(
+            item.img,
+            item.x,
+            item.y,
+            item.w,
+            item.h
+          )
+        })
 
       },
 
