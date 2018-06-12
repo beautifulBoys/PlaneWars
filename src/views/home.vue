@@ -167,7 +167,23 @@
         let bullets = []
         me.mine.bullets.forEach(item => {
           item.y = item.y + item.v
-          if (item.y > -(me.mine.bullet.h)) bullets.push(item)
+          if (item.y > -(me.mine.bullet.h)) {
+            bullets.push(item)
+            // for (let k in me.enemy.planes) { // 此处计算打中敌机 => 碰撞
+            //   let p = {
+            //     x: item.x + (item.w / 2),
+            //     y: item.y + (item.h / 2)
+            //   }
+            //   let b = {
+            //     x: me.enemy.planes[k].x + (me.enemy.planes[k].w / 2),
+            //     y: me.enemy.planes[k].y + (me.enemy.planes[k].h / 2)
+            //   }
+            //   let l = Math.sqrt(Math.pow(p.x - b.x, 2) + Math.pow(p.y - b.y, 2))
+            //   if (l > (item.h / 2) + (me.enemy.planes[k].h / 2)) {
+            //     bullets.push(item)
+            //   }
+            // }
+          }
         })
         me.mine.bullets = bullets
 
